@@ -1,0 +1,9 @@
+services:
+  spark-demo:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+    environment:
+      PYTHONPATH: /app
+    command: bash -lc "pip install -r requirements.txt && python src/generate_logs.py --rows 10000 --output data/raw/events.jsonl && python src/spark_pipeline.py --input data/raw/events.jsonl --output data/curated"
