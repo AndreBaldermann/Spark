@@ -1,19 +1,19 @@
 # Spark Portfolio Toy System: Web Log Analytics
 
-Dieses Repository enthält ein kleines, bewerbungstaugliches Demo-System für eine skalierbare Data-Engineering-Pipeline mit PySpark. Es simuliert Web-Log-Events, bereinigt fehlerhafte Datensätze, berechnet typische Business-Metriken und schreibt die Ergebnisse in Parquet.
+This repository contains a small, portfolio-ready demo system for a scalable data engineering pipeline built with PySpark. It simulates web log events, cleans invalid records, calculates common business metrics, and writes the results to Parquet.
 
-## Warum dieses Projekt in Bewerbungen punktet
+## Why This Project Stands Out in Job Applications
 
-Das Projekt zeigt zentrale Fähigkeiten für Data-Engineering- und Big-Data-Rollen:
+This project demonstrates key skills relevant to data engineering and big data roles:
 
-- Aufbau einer reproduzierbaren Batch-Pipeline mit Apache Spark.
-- Generierung großer, realistischer Testdaten ohne externe Abhängigkeiten.
-- Data Cleaning und Validierung von Eventdaten.
-- Aggregationen für Nutzer, Top-Seiten und Fehlerraten.
-- Speicherung analytischer Ergebnisse im spaltenbasierten Parquet-Format.
-- Lokale Ausführung per Docker oder direkt mit Python.
+* Building a reproducible batch-processing pipeline with Apache Spark.
+* Generating large, realistic test datasets without external dependencies.
+* Data cleaning and validation of event data.
+* Aggregations for user metrics, top pages, and error rates.
+* Storing analytical results in the columnar Parquet format.
+* Local execution via Docker or directly with Python.
 
-## Architektur
+## Architecture
 
 ```text
 +------------------+      +----------------------+      +-------------------+
@@ -22,7 +22,7 @@ Das Projekt zeigt zentrale Fähigkeiten für Data-Engineering- und Big-Data-Roll
 +------------------+      +----------------------+      +-------------------+
 ```
 
-## Projektstruktur
+## Project Structure
 
 ```text
 .
@@ -35,7 +35,7 @@ Das Projekt zeigt zentrale Fähigkeiten für Data-Engineering- und Big-Data-Roll
     └── test_generate_logs.py
 ```
 
-## Schnellstart ohne Docker
+## Quick Start Without Docker
 
 ```bash
 python -m venv .venv
@@ -45,28 +45,28 @@ python src/generate_logs.py --rows 10000 --output data/raw/events.jsonl
 python src/spark_pipeline.py --input data/raw/events.jsonl --output data/curated
 ```
 
-## Schnellstart mit Docker
+## Quick Start With Docker
 
 ```bash
 docker compose run --rm spark-demo python src/generate_logs.py --rows 10000 --output data/raw/events.jsonl
 docker compose run --rm spark-demo python src/spark_pipeline.py --input data/raw/events.jsonl --output data/curated
 ```
 
-## Ergebnisdaten
+## Output Data
 
-Die Pipeline schreibt drei Parquet-Datasets:
+The pipeline generates three Parquet datasets:
 
-- `data/curated/users_per_hour`: eindeutige Nutzer pro Stunde.
-- `data/curated/top_pages`: Seiten nach Anzahl gültiger Events.
-- `data/curated/error_rates`: Fehlerrate pro HTTP-Statusklasse.
+* `data/curated/users_per_hour` — unique users per hour.
+* `data/curated/top_pages` — pages ranked by valid event count.
+* `data/curated/error_rates` — error rates grouped by HTTP status class.
 
-## Beispieltext für den Lebenslauf
+## Resume Example
 
-> Aufbau einer lokalen Big-Data-Demo-Pipeline mit Docker, PySpark und Parquet zur Simulation skalierbarer Web-Log-Analysen inklusive Datenbereinigung, Aggregationen und reproduzierbarer Ausführung.
+> Built a local big-data demonstration pipeline using Docker, PySpark, and Parquet to simulate scalable web log analytics, including data cleansing, aggregations, and reproducible execution.
 
-## Nächste sinnvolle Erweiterungen
+## Recommended Next Enhancements
 
-- Notebook oder Streamlit-Dashboard für Visualisierung.
-- Benchmark-Tabelle für verschiedene Datenmengen.
-- Structured-Streaming-Variante mit Kafka-kompatiblem Event-Producer.
-- CI-Workflow für Tests und Codequalität.
+* Add a Notebook or Streamlit dashboard for visualization.
+* Include benchmark results for different dataset sizes.
+* Implement a Structured Streaming version with a Kafka-compatible event producer.
+* Add a CI workflow for testing and code quality validation.
