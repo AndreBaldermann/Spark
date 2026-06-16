@@ -3,46 +3,94 @@
 from __future__ import annotations
 
 import argparse
+import os
+import shutil
+import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql import functions as F
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame, SparkSession
+
+SUPPORTED_PYTHON_MAJOR = 3
+MAX_SUPPORTED_PYTHON_MINOR = 11
 
 
-def create_spark() -> SparkSession:
+def validate_runtime_environment() -> None:
+    """Fail early with actionable setup hints before Spark starts its Java gateway."""
+    if sys.version_info[:2] > (SUPPORTED_PYTHON_MAJOR, MAX_SUPPORTED_PYTHON_MINOR):
+        raise SystemExit(
+            "PySpark 3.5.x is intended for Python 3.8-3.11 in this demo. "
+            "Please create the virtual environment with Python 3.11, for example: "
+            "python3.11 -m venv .venv"
+        )
+
+    if shutil.which("java") is None:
+        raise SystemExit(
+            "Java was not found, but PySpark needs a JVM. Install OpenJDK 17 and set JAVA_HOME. "
+            "On Ubuntu/Debian: sudo apt install openjdk-17-jre-headless && "
+            "export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64"
+        )
+
+    if not os.environ.get("JAVA_HOME"):
+        print(
+            "Warning: JAVA_HOME is not set. If Spark cannot start, set it to your JDK/JRE path, "
+            "for example: export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64",
+            file=sys.stderr,
+        )
+
+
+def load_pyspark() -> tuple[Any, Any, Any]:
+    """Import PySpark lazily so missing setup produces a helpful CLI error."""
+    try:
+        from pyspark.sql import DataFrame, SparkSession, functions as F
+    except ModuleNotFoundError as exc:
+        if exc.name == "pyspark":
+            raise SystemExit("PySpark is not installed. Run: pip install -r requirements.txt") from exc
+        raise
+    return DataFrame, SparkSession, F
+
+
+def create_spark() -> "SparkSession":
+    validate_runtime_environment()
+    _, spark_session, _ = load_pyspark()
     return (
-        SparkSession.builder.appName("portfolio-web-log-analytics")
+        spark_session.builder.appName("portfolio-web-log-analytics")
         .master("local[*]")
         .config("spark.sql.session.timeZone", "UTC")
         .getOrCreate()
     )
 
 
-def clean_events(events: DataFrame) -> DataFrame:
+def clean_events(events: "DataFrame") -> "DataFrame":
     """Keep valid events and add analysis columns."""
+    _, _, functions = load_pyspark()
     return (
-        events.withColumn("event_ts", F.to_timestamp("event_time"))
-        .filter(F.col("event_ts").isNotNull())
-        .filter(F.col("user_id").isNotNull())
-        .filter(F.col("page").isNotNull())
-        .filter(F.col("status_code").between(100, 599))
-        .filter(F.col("latency_ms") >= 0)
-        .withColumn("event_hour", F.date_trunc("hour", F.col("event_ts")))
-        .withColumn("status_family", (F.col("status_code") / 100).cast("int") * 100)
+        events.withColumn("event_ts", functions.to_timestamp("event_time"))
+        .filter(functions.col("event_ts").isNotNull())
+        .filter(functions.col("user_id").isNotNull())
+        .filter(functions.col("page").isNotNull())
+        .filter(functions.col("status_code").between(100, 599))
+        .filter(functions.col("latency_ms") >= 0)
+        .withColumn("event_hour", functions.date_trunc("hour", functions.col("event_ts")))
+        .withColumn("status_family", (functions.col("status_code") / 100).cast("int") * 100)
     )
 
 
-def users_per_hour(events: DataFrame) -> DataFrame:
-    return events.groupBy("event_hour").agg(F.countDistinct("user_id").alias("unique_users"))
+def users_per_hour(events: "DataFrame") -> "DataFrame":
+    _, _, functions = load_pyspark()
+    return events.groupBy("event_hour").agg(functions.countDistinct("user_id").alias("unique_users"))
 
 
-def top_pages(events: DataFrame) -> DataFrame:
-    return events.groupBy("page").agg(F.count("*").alias("events")).orderBy(F.desc("events"))
+def top_pages(events: "DataFrame") -> "DataFrame":
+    _, _, functions = load_pyspark()
+    return events.groupBy("page").agg(functions.count("*").alias("events")).orderBy(functions.desc("events"))
 
 
-def error_rates(events: DataFrame) -> DataFrame:
-    total_events = F.count("*")
-    error_events = F.sum(F.when(F.col("status_code") >= 500, 1).otherwise(0))
+def error_rates(events: "DataFrame") -> "DataFrame":
+    _, _, functions = load_pyspark()
+    total_events = functions.count("*")
+    error_events = functions.sum(functions.when(functions.col("status_code") >= 500, 1).otherwise(0))
     return events.groupBy("status_family").agg(
         total_events.alias("events"),
         error_events.alias("server_errors"),

@@ -1,0 +1,31 @@
+{
+  "title": "Homelab AI Operations Overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Alerts by host",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "Homelab PostgreSQL"},
+          "rawSql": "SELECT event_ts AS time, host AS metric, count(*) AS value FROM alerts WHERE $__timeFilter(event_ts) GROUP BY 1, 2 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Recent root-cause guesses",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "Homelab PostgreSQL"},
+          "rawSql": "SELECT event_ts, host, severity, root_cause, cpu_usage, temperature_c, db_latency_ms FROM alerts ORDER BY event_ts DESC LIMIT 50",
+          "format": "table"
+        }
+      ]
+    }
+  ]
+}
