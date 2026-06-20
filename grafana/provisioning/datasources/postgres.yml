@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: Homelab PostgreSQL
+    type: postgres
+    uid: homelab-postgres
+    access: proxy
+    url: postgres:5432
+    database: homelab
+    user: homelab
+    secureJsonData:
+      password: homelab
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1500
+      timescaledb: false

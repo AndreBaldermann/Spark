@@ -1,0 +1,8 @@
+.venv/
+__pycache__/
+.pytest_cache/
+data/raw/*.jsonl
+data/curated/*
+data/homelab/raw/*.jsonl
+data/homelab/curated/*
+data/homelab/checkpoints/*
