@@ -11,7 +11,8 @@ CREATE TABLE IF NOT EXISTS alerts (
     packet_loss_pct DOUBLE PRECISION,
     db_latency_ms DOUBLE PRECISION,
     api_error_rate DOUBLE PRECISION,
-    created_at TIMESTAMPTZ DEFAULT now()
+    created_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT alerts_unique_event UNIQUE (event_ts, host, severity, root_cause)
 );
 
 CREATE INDEX IF NOT EXISTS idx_alerts_host_ts ON alerts (host, event_ts DESC);

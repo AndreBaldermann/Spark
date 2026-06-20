@@ -25,6 +25,11 @@ services:
       - "5432:5432"
     volumes:
       - ./sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homelab -d homelab"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   grafana:
     image: grafana/grafana:11.0.0
@@ -55,9 +60,11 @@ services:
       KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
       POSTGRES_DSN: postgresql://homelab:homelab@postgres:5432/homelab
     depends_on:
-      - redpanda
-      - postgres
-    command: bash -lc "python src/homelab_agent.py --minutes 120 --output data/homelab/raw/events.jsonl && python src/homelab_streaming.py --input-dir data/homelab/raw --output-dir data/homelab/curated --once"
+      redpanda:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    command: bash -lc "python src/homelab_agent.py --minutes 120 --output data/homelab/raw/events.jsonl && python src/homelab_streaming.py --input-dir data/homelab/raw --output-dir data/homelab/curated --once && python src/load_alerts_to_postgres.py --alerts-path data/homelab/curated/alerts"
 
 volumes:
   ollama:

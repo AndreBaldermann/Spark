@@ -1,13 +1,13 @@
 # Homelab AI Operations Platform
 
-A portfolio-grade miniature version of Datadog, Splunk, Dynatrace, or New Relic for your own homelab: edge devices generate telemetry, Spark processes the data in near real time, rules detect anomalies, Grafana visualizes alerts, and a local Ollama assistant can explain likely root causes.
+Eine bewerbungsstarke Mini-Version von Datadog, Splunk, Dynatrace oder New Relic für dein eigenes Homelab: Edge-Geräte erzeugen Telemetrie, Spark verarbeitet die Daten nahezu in Echtzeit, Regeln erkennen Anomalien, Grafana visualisiert Alerts und ein lokaler Ollama-Assistent kann Ursachen erklären.
 
-## Why This Project Is More Impressive Than a Typical Spark ETL
+## Warum dieses Projekt stärker wirkt als ein normaler Spark-ETL
 
-A classic portfolio project is often just `CSV -> Spark -> CSV`. This project demonstrates a complete operations data platform instead:
+Ein klassisches Portfolio-Projekt ist oft nur `CSV -> Spark -> CSV`. Dieses Projekt zeigt dagegen eine komplette Operations-Datenplattform:
 
 ```text
-Raspberry Pis / Home Server / Containers
+Raspberry Pis / Homeserver / Container
         |
         | metrics + logs + network telemetry
         v
@@ -16,29 +16,29 @@ Kafka-compatible event bus (Redpanda)
         v
 Spark Structured Streaming
         |
-        | anomaly detection + root-cause analysis
+        | anomaly detection + root-cause guesses
         v
 PostgreSQL history  --->  Grafana dashboards
         |
         v
-Ollama / Local LLM Assistant
+Ollama / local LLM assistant
 ```
 
-This showcases data engineering, streaming, distributed systems, monitoring, MLOps-oriented thinking, AI integration, and infrastructure expertise.
+Damit demonstrierst du Data Engineering, Streaming, Distributed Systems, Monitoring, MLOps-nahe Denkweise, AI-Integration und Infrastruktur-Know-how.
 
-## Included Features
+## Enthaltene Features
 
-* Simulated Raspberry Pi / homelab agent generating CPU, RAM, disk, temperature, network, database latency, API errors, and log telemetry.
-* Spark Structured Streaming job processing continuous telemetry from a JSONL directory.
-* Rule-based anomaly detection as a robust first implementation.
-* Root-cause suggestions such as `thermal_throttling_suspected` or `database_latency_causing_api_errors`.
-* Docker Compose stack with Redpanda/Kafka, PostgreSQL, Grafana, optional Ollama, and Spark demo containers.
-* PostgreSQL schema and Grafana provisioning as a starting point for dashboards.
-* Minimal Ollama-powered assistant that translates local alert context into human-readable explanations.
+- Simulierter Pi-/Homeserver-Agent für CPU, RAM, Disk, Temperatur, Netzwerk, Datenbanklatenz, API-Fehler und Logs.
+- Spark-Structured-Streaming-Job für laufende Telemetriedaten aus einem JSONL-Verzeichnis.
+- Regelbasierte Anomalie-Erkennung als robuste erste Version.
+- Root-Cause-Vermutungen, z. B. `thermal_throttling_suspected` oder `database_latency_causing_api_errors`.
+- Docker Compose Stack mit Redpanda/Kafka, PostgreSQL, Grafana, optional Ollama und Spark-Demo-Container.
+- PostgreSQL-Schema, Grafana-Provisioning und ein Loader, der Spark-JSON-Alerts in die `alerts`-Tabelle schreibt.
+- Minimaler Ollama-Assistent, der lokale Alert-Kontexte in eine Antwort übersetzt.
 
-## Quick Start with Docker
+## Schnellstart mit Docker
 
-Docker is recommended because the Spark container already includes Python 3.11 and OpenJDK 17.
+Docker ist empfohlen, weil der Spark-Container Python 3.11 und OpenJDK 17 enthält.
 
 ```bash
 docker compose build
@@ -46,18 +46,18 @@ docker compose up -d redpanda postgres grafana
 docker compose run --rm spark-demo
 ```
 
-Grafana will be available at http://localhost:3000. The default login for a fresh Grafana container is usually `admin` / `admin`.
+Grafana läuft danach auf <http://localhost:3000>. Standard-Login bei frischen Grafana-Containern ist meist `admin` / `admin`.
 
-Optional local LLM service:
+Optionaler lokaler LLM-Service:
 
 ```bash
 docker compose --profile ai up -d ollama
-# then pull a model inside the Ollama container, e.g. llama3.1 or qwen2.5
+# danach im Ollama-Container ein Modell ziehen, z. B. llama3.1 oder qwen2.5
 ```
 
-## Local Quick Start Without Docker
+## Lokaler Schnellstart ohne Docker
 
-Requirements: Python 3.11 and Java/OpenJDK 17. PySpark launches a local JVM; without Java you will encounter a `JAVA_GATEWAY_EXITED` error.
+Voraussetzungen: Python 3.11 und Java/OpenJDK 17. PySpark startet lokal eine JVM; ohne Java erscheint sonst ein `JAVA_GATEWAY_EXITED`-Fehler.
 
 ```bash
 sudo apt update
@@ -68,19 +68,20 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python src/homelab_agent.py --minutes 120 --output data/homelab/raw/events.jsonl
 python src/homelab_streaming.py --input-dir data/homelab/raw --output-dir data/homelab/curated --once
+python src/load_alerts_to_postgres.py --alerts-path data/homelab/curated/alerts
 ```
 
-## Example Chatbot Query
+## Beispiel: Chatbot-Frage
 
-If Ollama is running and alert context exists:
+Wenn Ollama läuft und Alert-Kontext vorhanden ist:
 
 ```bash
-python src/ai_assistant.py "Why is Pi 3 running slowly?" --context data/homelab/curated/alerts --model llama3.1
+python src/ai_assistant.py "Warum ist Pi 3 langsam?" --context data/homelab/curated/alerts --model llama3.1
 ```
 
-The assistant builds a prompt from local alert data and queries your local Ollama model.
+Der Assistent baut aus lokalen Alert-Daten einen Prompt und fragt dein lokales Ollama-Modell.
 
-## Project Structure
+## Projektstruktur
 
 ```text
 .
@@ -93,17 +94,22 @@ The assistant builds a prompt from local alert data and queries your local Ollam
 │   ├── ai_assistant.py
 │   ├── homelab_agent.py
 │   ├── homelab_streaming.py
+│   ├── load_alerts_to_postgres.py
 │   ├── homelab/rules.py
 │   └── spark_pipeline.py
 └── tests/
 ```
 
-## Roadmap for a Real Homelab Deployment
+## Roadmap für eine echte Homelab-Installation
 
-1. **Real Agents:** Install a lightweight systemd service on each Raspberry Pi to send `psutil` metrics and relevant log entries.
-2. **Kafka Topics:** Separate `metrics`, `logs`, `network`, and `alerts`, and add a Schema Registry.
-3. **Spark Streaming:** Enable Kafka as a source and introduce watermarks and windowed aggregations.
-4. **Persistence:** Store alerts and aggregated metrics in PostgreSQL or TimescaleDB.
-5. **Grafana:** Expand dashboards with host health, top root causes, error budgets, and network diagnostics.
-6. **Machine Learning:** Extend rule-based detection with Isolation Forest, DBSCAN, or Autoencoders.
-7. **AI Assistant:** Add retrieval over historical alerts and logs, then generate responses using a local Ollama model.
+1. **Echte Agents:** Auf jedem Raspberry Pi einen kleinen systemd-Service installieren, der `psutil`-Metriken und relevante Logzeilen sendet.
+2. **Kafka Topics:** `metrics`, `logs`, `network`, `alerts` trennen und Schema Registry ergänzen.
+3. **Spark Streaming:** Kafka-Quelle aktivieren, Watermarks und Fensteraggregationen einbauen.
+4. **Persistenz:** Alerts werden bereits nach PostgreSQL geladen; als nächster Schritt können aggregierte Metriken nach PostgreSQL oder TimescaleDB geschrieben werden.
+5. **Grafana:** Panels für Host-Zustand, Top-Root-Causes, Error Budgets und Netzwerkprobleme ausbauen.
+6. **ML:** Regelbasierte Erkennung durch Isolation Forest, DBSCAN oder Autoencoder ergänzen.
+7. **AI Assistant:** Retrieval über historische Alerts und Logs, dann lokale Ollama-Antworten.
+
+## Lebenslauf-Text
+
+> Entwickelte eine verteilte Observability-Plattform mit Apache Spark Structured Streaming und Kafka-kompatiblem Event-Bus zur Echtzeit-Analyse von Telemetriedaten von Edge-Geräten. Implementierte Anomalie-Erkennung, Root-Cause-Vermutungen, Alerting-Grundlagen, PostgreSQL-Historisierung, Grafana-Dashboards und einen lokalen LLM-Assistenten für Infrastrukturfragen.
