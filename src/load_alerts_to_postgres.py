@@ -47,13 +47,53 @@ def iter_alert_records(alerts_path: Path) -> Iterator[dict[str, Any]]:
                     yield {column: record.get(column) for column in ALERT_COLUMNS}
 
 
+def ensure_alerts_schema(cursor: Any) -> None:
+    """Create or migrate the alerts table so ON CONFLICT works on existing databases."""
+    cursor.execute(
+        """
+        CREATE TABLE IF NOT EXISTS alerts (
+            id BIGSERIAL PRIMARY KEY,
+            event_ts TIMESTAMPTZ NOT NULL,
+            host TEXT NOT NULL,
+            severity TEXT NOT NULL,
+            root_cause TEXT NOT NULL,
+            cpu_usage DOUBLE PRECISION,
+            ram_usage DOUBLE PRECISION,
+            disk_usage DOUBLE PRECISION,
+            temperature_c DOUBLE PRECISION,
+            packet_loss_pct DOUBLE PRECISION,
+            db_latency_ms DOUBLE PRECISION,
+            api_error_rate DOUBLE PRECISION,
+            created_at TIMESTAMPTZ DEFAULT now()
+        )
+        """
+    )
+    cursor.execute(
+        """
+        DELETE FROM alerts older
+        USING alerts newer
+        WHERE older.ctid < newer.ctid
+          AND older.event_ts = newer.event_ts
+          AND older.host = newer.host
+          AND older.severity = newer.severity
+          AND older.root_cause = newer.root_cause
+        """
+    )
+    cursor.execute(
+        """
+        CREATE UNIQUE INDEX IF NOT EXISTS alerts_unique_event_idx
+        ON alerts (event_ts, host, severity, root_cause)
+        """
+    )
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_host_ts ON alerts (host, event_ts DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_alerts_severity_ts ON alerts (severity, event_ts DESC)")
+
+
 def insert_alerts(dsn: str, records: Iterable[dict[str, Any]]) -> int:
     """Insert alert records into PostgreSQL and return the number of new rows."""
     import psycopg
 
     rows = [tuple(record.get(column) for column in ALERT_COLUMNS) for record in records]
-    if not rows:
-        return 0
 
     placeholders = ", ".join(["%s"] * len(ALERT_COLUMNS))
     columns = ", ".join(ALERT_COLUMNS)
@@ -67,7 +107,9 @@ def insert_alerts(dsn: str, records: Iterable[dict[str, Any]]) -> int:
 
     with psycopg.connect(dsn) as connection:
         with connection.cursor() as cursor:
-            cursor.executemany(query, rows)
+            ensure_alerts_schema(cursor)
+            if rows:
+                cursor.executemany(query, rows)
         connection.commit()
     return len(rows)
 

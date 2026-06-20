@@ -71,6 +71,16 @@ python src/homelab_streaming.py --input-dir data/homelab/raw --output-dir data/h
 python src/load_alerts_to_postgres.py --alerts-path data/homelab/curated/alerts
 ```
 
+## End-to-End Smoke Test
+
+Vor einem Bewerbungs-Screenshot oder Demo-Video kannst du den kompletten Docker-Pfad prüfen:
+
+```bash
+./scripts/smoke_test.sh
+```
+
+Der Smoke Test baut den Spark-Container, startet Redpanda, PostgreSQL und Grafana, erzeugt Telemetrie, führt Spark Structured Streaming aus, lädt JSON-Alerts nach PostgreSQL und prüft, dass Grafana über die PostgreSQL-Zieldaten Daten sehen kann.
+
 ## Beispiel: Chatbot-Frage
 
 Wenn Ollama läuft und Alert-Kontext vorhanden ist:
